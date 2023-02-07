@@ -1,0 +1,47 @@
+diff a/NomadicBook/NomadicBook/Startup.cs b/NomadicBook/NomadicBook/Startup.cs	(rejected hunks)
+@@ -26,7 +26,44 @@
+         public IConfiguration Configuration { get; }
+         public void ConfigureServices(IServiceCollection services)
+         {
+-            services.AddJWT();
++            services.AddAuthentication(option =>
++            {
++                option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
++                option.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
++                option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
++            })
++          .AddJwtBearer(option =>
++          {
++              option.RequireHttpsMetadata = false;
++              option.Events = new JwtBearerEvents()
++              {
++                  OnAuthenticationFailed = context =>
++                  {
++                       //Token expired
++                       if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
++                      {
++                          context.Response.Headers.Add("Token-Expired", "true");
++                      }
++                      return Task.CompletedTask;
++                  },
++              };
++
++              option.TokenValidationParameters = new TokenValidationParameters
++              {
++                   // �O�_���ҥ��Įɶ�
++                   ValidateLifetime = true,
++                   // ���\���ɶ������q
++                   ClockSkew = TimeSpan.FromSeconds(30),
++                  ValidateAudience = true,
++                   // �o�̱ĥΰʺA���Ҫ��覡�A�b���s�n���ɡA���s��ztoken�A��token�N�j��ĤF
++                   AudienceValidator = AudienceValidator,
++                   // �O�_����Issuer
++                   ValidateIssuer = false,
++                   // �O�_����SecurityKey
++                   ValidateIssuerSigningKey = true,
++                  IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(IConst.SecurityKey))
++              };
++          });
+ 
+             services.AddCors(options =>
+             {
